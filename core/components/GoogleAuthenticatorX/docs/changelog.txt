@@ -1,0 +1,31 @@
+Changelog file for GoogleAuthenticatorX ModX extra.
+
+GoogleAuthenticatorX 1.0.0-rc-1
+====================================
+- Public availability
+
+GoogleAuthenticatorX 0.9.0-beta
+====================================
+- Added feature: Users courtesy log-in
+- Added feature: Allow users QR-code in manager profile
+- Added feature: Send Instructions email to users
+- Added feature: Send QR-Code by email
+
+GoogleAuthenticatorX 0.4.2-beta
+====================================
+- Fixed issue: Avoid Google Authenticator account conflict
+- Fixed issue: Changing status with lexicon
+- Better logging
+
+GoogleAuthenticatorX 0.3.2-beta
+====================================
+- Multi language support
+
+GoogleAuthenticatorX 0.2.1-beta
+====================================
+- Added users tab
+- Data are stored encrypted.
+
+GoogleAuthenticatorX 0.1.0-beta
+====================================
+- Initial commit (Basic functionality)
