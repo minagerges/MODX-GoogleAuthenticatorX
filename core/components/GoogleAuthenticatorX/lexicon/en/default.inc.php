@@ -26,9 +26,14 @@ $_lang['gax.description'] = 'Description';
 $_lang['setting_gax_disabled'] = 'Disable 2-factor authentication';
 $_lang['setting_gax_disabled_desc'] = 'Disabling 2-factor authentication will revert manager login back to default.';
 $_lang['setting_gax_courtesy_enabled'] = 'Allow Courtesy login';
-$_lang['setting_gax_courtesy_enabled_desc'] = 'Allowing courtesy login will enable users to have a 1 time login to retrieve their secret from their profile (If "Show secret in users profile" is enabled)';
+$_lang['setting_gax_courtesy_enabled_desc'] = 'Allowing courtesy login will enable users to have a 1 time login to retrieve their secret.';
 $_lang['setting_gax_profile_enabled'] = 'Show secret in users profile';
 $_lang['setting_gax_profile_enabled_desc'] = 'Allow users to see Google Authentication secret in their manager user profile.';
+
+$_lang['gax.authkey'] = 'Authentication Key';
+$_lang['gax.enterkey'] = 'Please enter Authentication key!';
+$_lang['gax.invalidformat'] = 'Invlid authentication key format, expecting 6 digits!';
+$_lang['gax.invalidcode'] = 'Invalid authentication key.';
 
 $_lang['gax.hello'] = 'Hello';
 $_lang['gax.usertab_desc'] = 'Here you can manage GoogleAuthenticatorX  <i>(Google Authenticator 2-factor authentication)</i> user specific tasks.';

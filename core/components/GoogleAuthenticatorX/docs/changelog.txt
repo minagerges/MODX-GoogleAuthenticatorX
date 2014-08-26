@@ -1,6 +1,14 @@
 Changelog file for GoogleAuthenticatorX ModX extra.
 
-GoogleAuthenticatorX 1.0.0-rc-1
+GoogleAuthenticatorX 1.0.0-rc2
+====================================
+- Added setup-options (enable 2-step verification + email instructions to users with manager access)
+- Users' emails now are sent with each user manager language.
+- More detailed instructions email to users.
+- [#5] Fixed hardcoded login form strings.
+- [#10] Fixed double slashes in URI
+
+GoogleAuthenticatorX 1.0.0-rc1
 ====================================
 - Public availability
 

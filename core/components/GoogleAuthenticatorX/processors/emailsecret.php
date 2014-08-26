@@ -30,13 +30,14 @@ if($loggeduser){
         $GA->LoadUserByID($userid);
         $gaSettings = $GA->GetDecryptedSettingsArray();
         if ($gaSettings) {
-            $modx->lexicon->load('GoogleAuthenticatorX:emailtpl');
+            $user = $modx->getObject('modUser', $userid);
+            $mgrLanguage = $user->getOption('manager_language');
+            $modx->lexicon->load("$mgrLanguage:GoogleAuthenticatorX:emailtpl");
             $subject = $modx->lexicon('gax.qremail_subject');
             $body = $modx->lexicon('gax.qremail_body',array(   /*modify array according to template*/
                 'username' => $GA->UserName,
                 'qrurl' => $gaSettings['qrurl']));
             $body = '<html><body>'.$body.'</body></html>';
-            $user = $modx->getObject('modUser', $userid);
             if(!$user->sendEmail($body,array('subject' => $subject) )) {
                 return $modx->error->failure($modx->lexicon('gax.emailfail') . $modx->mail->mailer->ErrorInfo);
             }

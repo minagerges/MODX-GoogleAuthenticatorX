@@ -27,7 +27,7 @@ set_time_limit(0);
 define('PKG_NAME', 'GoogleAuthenticatorX');
 define('PKG_NAME_LOWER', strtolower(PKG_NAME));
 define('PKG_VERSION', '1.0.0');
-define('PKG_RELEASE', 'rc1');
+define('PKG_RELEASE', 'rc2');
 
 $root = dirname(dirname(dirname(__FILE__))).'/';
 $sources = array(
@@ -119,11 +119,10 @@ $vehicle->resolve('file',array(
     'source' => $sources['source_core'],
     'target' => "return MODX_CORE_PATH . 'components/';",
 ));
-/* Setup Option postponed for a future release
 $vehicle->resolve('php',array(
     'source' => $sources['resolvers'] . 'setupoptions.resolver.php',
 ));
- */
+
 $builder->putVehicle($vehicle);
 
 
@@ -133,7 +132,7 @@ $builder->setPackageAttributes(array(
     'license' => file_get_contents($sources['docs'].'license.txt'),
     'readme' => file_get_contents($sources['docs'].'readme.txt'),
     'changelog' => file_get_contents($sources['docs'].'changelog.txt'),
-/*    'setup-options' => array('source' => $sources['build'] . 'setup.options.php'),*/
+    'setup-options' => array('source' => $sources['build'] . 'setup.options.php'),
 ));
 
 /* zip up package */

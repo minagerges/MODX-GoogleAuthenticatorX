@@ -21,7 +21,7 @@ if (isset($object) && isset($object->xpdo)) {
     $modx = $object->xpdo;
 }
 if (!isset($modx)) {
-    require_once dirname(dirname(dirname(dirname(dirname(__FILE__))))) . '/revolution/config.core.php';
+    require_once dirname(dirname(dirname(dirname(dirname(__FILE__))))) . '/config.core.php';
     require_once MODX_CORE_PATH . 'model/modx/modx.class.php';
     $modx= new modX();
     $modx->initialize('web');
@@ -32,32 +32,102 @@ if (!isset($modx)) {
 $success= false;
 switch ($options[xPDOTransport::PACKAGE_ACTION]) {
     case xPDOTransport::ACTION_INSTALL:
-        if($options['sendnotifymail']){
-            $modx->log(modX::LOG_LEVEL_WARN,'Started sending emails...');
-            $recepients = array();
-            
-            /* Get UserGroups with mgr access and send to them emails NOT TESTED*/
-            $mgrGroups = $modx->getObject('modAccessContext', array('target'=>'mgr'));
+    case xPDOTransport::ACTION_UPGRADE:
+        if($options['sendnotifymail']){ /* Email all users with manager access */
+            $modx->getService('lexicon','modLexicon');
+            $modx->log(modX::LOG_LEVEL_WARN,'Started sending emails to users with manager access...');
+            $mgrCtx = $modx->getObject('modContext', array('key' => 'mgr'));
+            $body = '<html><body> <p>hellloooooooo</p> </body></html>'; //Load lexicon and get email body and subject. //maybe check each user lexicon and load his language email.
+            $subject = '2-step verification is enabled';
             $users = $modx->getCollection('modUser');
-            foreach($iuser as $users){
-                $iuserGroups =  $iuser->getUserGroups();
-                if($iuser->isMember($mgrGroups)){
-                    $iuser->sendEmail($body, array('subject'=>$subject));
+            foreach($users as $iuser){
+                if(checkPolicy('frames', $mgrCtx, $iuser) ){
+                    //Get body and subject for each user manager language
+                    $mgrLanguage = $iuser->getOption('manager_language');
+                    $modx->lexicon->load("$mgrLanguage:GoogleAuthenticatorX:emailtpl");
+                    $subject = $modx->lexicon('gax.notifyemail_subject');
+                    $body = $modx->lexicon('gax.notifyemail_body',array( 'username' => $iuser->get('username'),));
+                    $body = '<html><body>'.$body.'</body></html>';
+                    if($iuser->sendEmail($body, array('subject'=>$subject)) ){
+                        $modx->log(modX::LOG_LEVEL_INFO,"Sent email to user:({$iuser->get('username')})  id:{$iuser->get('id')}");
+                    }
+                    else{
+                        $modx->log(modX::LOG_LEVEL_WARN,"Sending email failed, user:({$iuser->get('username')})  id:{$iuser->get('id')}");
+                    }
                 }
             }
         }
+        if($options['enablegax']){
+            $Setting = $modx->getObject('modSystemSetting', 'gax_disabled');
+            $Setting->set('value', 0);
+            $Setting->save();
+            $modx->log(modX::LOG_LEVEL_WARN,"Enabled 2-step verification");
+            $modx->log(modX::LOG_LEVEL_INFO,"Refreshing system settings cache...");
+            $cacheRefreshOptions =  array( 'system_settings' => array() );
+            $modx->cacheManager-> refresh($cacheRefreshOptions);
+            
+        }
         
-        $modx->log(modX::LOG_LEVEL_INFO,'Started sending emails...');
-        $modx->log(modX::LOG_LEVEL_ERROR,'Starting sending emails...');
-         $object->xpdo->log(xPDO::LOG_LEVEL_ERROR,'[GAx]  setting could not be found, so the setting could not be changed.');
-        $modx->log(modX::LOG_LEVEL_WARN,'[GoogleAuthenticatorX] Remember to configure your own account\'s Google Authenticator before enabling 2-factor Authentication');
-        $modx->log(modX::LOG_LEVEL_ERROR,"Options: mail? {$options['sendnotifymail']}  Courtesy?{$options['enablecourtesy']}");
         $success = true;
         break;
     
-    case xPDOTransport::ACTION_UPGRADE:
     case xPDOTransport::ACTION_UNINSTALL:
         $success= true;
         break;
 }
 return $success;
+
+/**
+ * Determine is a user attributes satisfy an Object policy
+ * 
+ * @param array $criteria An associative array providing a key and value to
+ * search for within the matched policy attributes between policy and
+ * principal.
+ * @param type $target A target modAccess class name
+ * @param type $user
+ * @return boolean
+ **/
+function checkPolicy($criteria, $target, $user) {
+    if ($user->get('sudo')) return true;
+    if (!is_array($criteria) && is_scalar($criteria)) {
+        $criteria = array("{$criteria}" => true);
+    }
+    $policy = $target->findPolicy();//$this->findPolicy();
+    if (true) {
+        $principal = $user->getAttributes($target);
+        if (!empty($principal)) {
+            foreach ($policy as $policyAccess => $access) {
+                foreach ($access as $targetId => $targetPolicy) {
+                    foreach ($targetPolicy as $policyIndex => $applicablePolicy) {
+                        $principalPolicyData = array();
+                        $principalAuthority = 9999;
+                        if (isset($principal[$policyAccess][$targetId]) && is_array($principal[$policyAccess][$targetId])) {
+                            foreach ($principal[$policyAccess][$targetId] as $acl) {
+                                $principalAuthority = intval($acl['authority']);
+                                $principalPolicyData = $acl['policy'];
+                                $principalId = $acl['principal'];
+                                if ($applicablePolicy['principal'] == $principalId) {
+                                    if ($principalAuthority <= $applicablePolicy['authority']) {
+                                        if (!$applicablePolicy['policy']) {
+                                            return true;
+                                        }
+                                        if (empty($principalPolicyData)) $principalPolicyData = array();
+                                        $matches = array_intersect_assoc($principalPolicyData, $applicablePolicy['policy']);
+                                        if ($matches) {
+                                            $matched = array_diff_assoc($criteria, $matches);
+                                             if (empty($matched)) {
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+}

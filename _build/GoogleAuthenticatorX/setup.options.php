@@ -25,14 +25,13 @@ $output = <<<HTML
 <p style="font-style: italic;"><strong>NB:</strong> Sending emails might extend the installation process time depending on the amount of users with manager access.</p>
 <br/>
 <div style="padding-left: 20px;">       
-    <input type="checkbox" name="sendnotifymail"/> 
-    <label for="sendnotifymail" style="display: inline;">Email users</label>
+    <input type="checkbox" name="sendnotifymail" checked  /> 
+    <label for="sendnotifymail" style="display: inline;">Email users with manager access</label>
     <br/><br/>
-
-    <input type="checkbox" name="enablecourtesy"/> 
-    <label for="enablecourtesy" style="display: inline;">Enable 2-factor verification</label>
+    <input type="checkbox" name="enablegax"/> 
+    <label for="enablegax" style="display: inline;">Enable 2-factor verification</label>
     <br />
-<p style="color:red;">If you enable 2-step verification, be ready with your phone for setting up Google Authenticator, otherwise you will lose your login session.</p>
+<p style="color:red;">If you enable 2-step verification, be ready with your mobile device for setting up Google Authenticator, otherwise you will lose your login session.</p>
 </div>
 HTML;
     break;

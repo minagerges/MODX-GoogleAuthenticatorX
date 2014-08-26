@@ -23,12 +23,12 @@ switch($eventName) {
         $username = $_POST['username'];
         $gacode = $_POST['ga_code'];
         $output = '';
-        
         include_once $modx->getOption('core_path')."components/GoogleAuthenticatorX/model/googleauthenticator.class.php";
         $GA = new GAx($modx);
         $GA->LoadUserByName($username);
         
         if(!$modx->getOption('gax_disabled',null,false)){
+            $modx->controller->addLexiconTopic('GoogleAuthenticatorX:default');
             if(!$GA->UserExist){
                 $output = true;
             }
@@ -41,16 +41,16 @@ switch($eventName) {
                 $modx->log(modX::LOG_LEVEL_ERROR,"GoogleAuthenticatorX: user:($username) logged in courtesy mode." );
             }
             else if(empty($gacode)) {
-                 $output = 'Please enter Authentication key!';
+                 $output = $modx->lexicon('gax.enterkey');
             }
             else if(preg_match("/^[0-9]{6}$/",$gacode) < 1) { 
-                $output = "Invlid authentication code format, expecting 6 digits!!";
+                $output = $modx->lexicon('gax.invalidformat');
             }
             else if($GA->UserCodeMatch($gacode)){ 
                 $output = true;
             }
             else{
-                $output = 'Invalid authentication code.';
+                $output = $modx->lexicon('gax.invalidcode');
             }
         }
         else {
@@ -61,11 +61,12 @@ switch($eventName) {
         break;
     case 'OnManagerLoginFormRender': /* Load authentication code field */
         if(!$modx->getOption('gax_disabled',null,false)) {
+            $modx->controller->addLexiconTopic('GoogleAuthenticatorX:default');
             $output = '<br><br><div class="x-form-item login-form-item">'
-                    . '<label for="GoogleAuthenticator">&nbsp;Authentication Key'
+                    . '<label for="GoogleAuthenticator">&nbsp;'.$modx->lexicon('gax.authkey')
                     . '<div class="x-form-element ">'
                     . '<input type="text" name="ga_code" value="" tabindex="2" autocomplete="off" maxlength="6"'
-                    . 'class="x-form-text x-form-field" placeholder="Authentication Key"/></label>'
+                    . 'class="x-form-text x-form-field" placeholder="'.$modx->lexicon('gax.authkey').'"/></label>'
                     . '</div>'
                     . '</div>';
             $modx->event->_output = $output;

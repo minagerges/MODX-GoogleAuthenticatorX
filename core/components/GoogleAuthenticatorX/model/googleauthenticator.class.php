@@ -177,7 +177,7 @@ class GAx {
         $issuer = $this->modx->getOption('site_name');
         $mgrURLalt = $this->modx->getOption('manager_login_url_alternate');
         $mgrURL = empty($mgrURLalt) ? 
-                $this->modx->getOption('site_url') . $this->modx->getOption('manager_url') : $mgrURLalt ;
+                $this->modx->getOption('url_scheme').$this->modx->getOption('http_host').$this->modx->getOption('manager_url') : $mgrURLalt ;
         $accountname = $username . '::' . $mgrURL ;
         $uri    = $this->ga->getURI($accountname, $secret, $issuer);
         $QRurl  = $this->ga->getQRCodeGoogleUrl($accountname, $secret, $issuer);
@@ -309,5 +309,5 @@ class GAx {
                 break;
         }
     }
-
+    
 }
