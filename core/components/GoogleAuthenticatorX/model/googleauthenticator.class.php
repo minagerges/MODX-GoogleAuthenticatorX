@@ -74,7 +74,8 @@ class GAx {
         $profile = $this->user->getOne('Profile');
         $extended = $profile->get('extended');
         if($extended['GoogleAuthenticatorX']){
-            $profile->set('extended', null);
+            $extended['GoogleAuthenticatorX']['Settings'] = null;
+            $profile->set('extended', $extended);
             $profile->save();
         }
         $this->CreateDefaultSettings();
