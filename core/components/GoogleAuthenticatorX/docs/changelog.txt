@@ -2,6 +2,10 @@ Changelog file for GoogleAuthenticatorX ModX extra.
 
 GoogleAuthenticatorX 1.0.0-rc2
 ====================================
+- Fixed sending email to users during installation i8n issue
+
+GoogleAuthenticatorX 1.0.0-rc2
+====================================
 - [#1] Added setup-options (enable 2-step verification + email instructions to users with manager access)
 - Users' emails now are sent with each user manager language.
 - More detailed instructions email to users.
