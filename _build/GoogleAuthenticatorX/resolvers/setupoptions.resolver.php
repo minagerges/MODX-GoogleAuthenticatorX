@@ -37,14 +37,13 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
             $modx->getService('lexicon','modLexicon');
             $modx->log(modX::LOG_LEVEL_WARN,'Started sending emails to users with manager access...');
             $mgrCtx = $modx->getObject('modContext', array('key' => 'mgr'));
-            $body = '<html><body> <p>hellloooooooo</p> </body></html>'; //Load lexicon and get email body and subject. //maybe check each user lexicon and load his language email.
             $subject = '2-step verification is enabled';
             $users = $modx->getCollection('modUser');
             foreach($users as $iuser){
                 if(checkPolicy('frames', $mgrCtx, $iuser) ){
                     //Get body and subject for each user manager language
                     $mgrLanguage = $iuser->getOption('manager_language');
-                    $modx->lexicon->load("$mgrLanguage:GoogleAuthenticatorX:emailtpl");
+                    $modx->lexicon->load("GoogleAuthenticatorX:emailtpl", $mgrLanguage);
                     $subject = $modx->lexicon('gax.notifyemail_subject');
                     $body = $modx->lexicon('gax.notifyemail_body',array( 'username' => $iuser->get('username'),));
                     $body = '<html><body>'.$body.'</body></html>';
