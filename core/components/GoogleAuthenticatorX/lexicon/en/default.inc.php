@@ -29,6 +29,8 @@ $_lang['setting_gax_courtesy_enabled'] = 'Allow Courtesy login';
 $_lang['setting_gax_courtesy_enabled_desc'] = 'Allowing courtesy login will enable users to have a 1 time login to retrieve their secret.';
 $_lang['setting_gax_profile_enabled'] = 'Show secret in users profile';
 $_lang['setting_gax_profile_enabled_desc'] = 'Allow users to see Google Authentication secret in their manager user profile.';
+$_lang['setting_gax_issuer'] = 'QR-code issuer value';
+$_lang['setting_gax_issuer_desc'] = 'Set the QR-code issuer value, default to site_name';
 
 $_lang['gax.authkey'] = 'Authentication Key';
 $_lang['gax.enterkey'] = 'Please enter Authentication key!';

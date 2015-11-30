@@ -32,7 +32,13 @@ if (!isset($modx)) {
 $success= false;
 switch ($options[xPDOTransport::PACKAGE_ACTION]) {
     case xPDOTransport::ACTION_INSTALL:
-    case xPDOTransport::ACTION_UPGRADE:
+        /*Validate requirements*/
+        if(!meetsRequirements()){
+            $modx->log(modX::LOG_LEVEL_ERROR,"Installation requirements not met: php version > 5.3 AND/OR mcrypt extension not loaded.");
+            $success = false;
+            break;
+        }
+
         if($options['sendnotifymail']){ /* Email all users with manager access */
             $modx->getService('lexicon','modLexicon');
             $modx->log(modX::LOG_LEVEL_WARN,'Started sending emails to users with manager access...');
@@ -69,6 +75,74 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
         
         $success = true;
         break;
+
+    case xPDOTransport::ACTION_UPGRADE:
+        /* Validate requirements */
+        if(!meetsRequirements()){
+            $modx->log(modX::LOG_LEVEL_ERROR,"Installation requirements not met: php version > 5.3 AND/OR mcrypt extension not loaded.");
+            $success = false;
+            break;
+        }
+
+        /* Upgrade old cipher for older releases */
+        //check previous version
+        $legacyPackageExist = false;
+        $response = $modx->runProcessor('workspace/packages/getlist', array('search' => 'googleauthenticatorx') );
+        if ($response->isError()) {
+            $modx->log(modX::LOG_LEVEL_ERROR,"Failed to detect previous release, skipping user data migration.");
+        }
+        $legacyPackage = $modx->fromJSON($response->response)['results'];
+        if(!empty($legacyPackage) && $legacyPackage['0']['package_name'] == 'GoogleAuthenticatorX' ){
+            $version = $legacyPackage['0']['version'];
+            $release = $legacyPackage['0']['release'];
+            if($version == '1.0.0' && ($release == 'rc1' || $release == 'rc2') ) {
+                $legacyPackageExist = true;
+            }
+        }
+        else{
+            $modx->log(modX::LOG_LEVEL_INFO, "No legacy package was found.");
+        }
+
+        if($legacyPackageExist == true) {
+            $modx->log(modX::LOG_LEVEL_WARN,"Previous version detected, re-encrypting data...");
+            //Re-encrypt user data
+            $mgrCtx = $modx->getObject('modContext', array('key' => 'mgr'));
+            $users = $modx->getCollection('modUser');
+            foreach ($users as $iuser) {
+                if (checkPolicy('frames', $mgrCtx, $iuser)) {
+                    $modx->log(modX::LOG_LEVEL_INFO,"Re-encrypting data for user: " . $iuser->get('username'));
+                    $profile = $iuser->getOne('Profile');
+                    $extended = $profile->get('extended');
+                    if ($extended['GoogleAuthenticatorX']){
+                        $gaSettings = $extended['GoogleAuthenticatorX']['Settings'];
+                    }
+                    if ($gaSettings) {
+                        $uKey = $modx->uuid;
+                        $incourtesy = legacyDecrypt($gaSettings['incourtesy'], $uKey);
+                        $incourtesy = encrypt($incourtesy, $uKey);
+                        $secret = legacyDecrypt($gaSettings['secret'], $uKey);
+                        $secret = encrypt($secret, $uKey);
+                        $uri = legacyDecrypt($gaSettings['uri'], $uKey);
+                        $uri = encrypt($uri, $uKey);
+                        $QRurl = legacyDecrypt($gaSettings['qrurl'], $uKey);
+                        $QRurl = encrypt($QRurl, $uKey);
+
+                        $newData = array(
+                            'incourtesy' => $incourtesy,
+                            'secret' => $secret,
+                            'uri'    => $uri,
+                            'qrurl'  => $QRurl
+                        );
+                        $extended['GoogleAuthenticatorX']['Settings'] = $newData;
+                        $profile->set('extended', $extended);
+                        $profile->save();
+                    }
+                }
+            }
+        }
+
+        $success = true;
+        break;
     
     case xPDOTransport::ACTION_UNINSTALL:
         $success= true;
@@ -91,7 +165,7 @@ function checkPolicy($criteria, $target, $user) {
     if (!is_array($criteria) && is_scalar($criteria)) {
         $criteria = array("{$criteria}" => true);
     }
-    $policy = $target->findPolicy();//$this->findPolicy();
+    $policy = $target->findPolicy();
     if (true) {
         $principal = $user->getAttributes($target);
         if (!empty($principal)) {
@@ -129,4 +203,31 @@ function checkPolicy($criteria, $target, $user) {
         return false;
     }
 
+}
+
+function meetsRequirements(){
+    $result = true;
+    if (!extension_loaded('mcrypt')) {
+        $result = false;
+    }
+    $php_ver_comp = version_compare(phpversion(), '5.3.0');
+    if ($php_ver_comp < 0) {
+        $result = false;
+    }
+    return $result;
+}
+
+function legacyDecrypt($Cyphered, $key){
+    $Cyphered = base64_decode($Cyphered);
+    $iv_size = mcrypt_get_iv_size(MCRYPT_BLOWFISH, MCRYPT_MODE_ECB);
+    $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
+    $decrypted_string = mcrypt_decrypt(MCRYPT_BLOWFISH, $key, $Cyphered, MCRYPT_MODE_ECB, $iv);
+    return $decrypted_string;
+}
+
+function encrypt($plainTXT, $key){
+    $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
+    $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
+    $encrypted_string = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key, $plainTXT, MCRYPT_MODE_CBC, $iv);
+    return base64_encode($iv . $encrypted_string);
 }

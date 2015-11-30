@@ -1,8 +1,11 @@
 Changelog file for GoogleAuthenticatorX ModX extra.
 
-GoogleAuthenticatorX 1.0.0-rc2
+GoogleAuthenticatorX 1.1.0-rc3
 ====================================
-- Fixed sending email to users during installation i8n issue
+- [#12] Fixed user "Extended fields" data loss on "secret reset"
+- [#14] Fixed sending email to users during installation i8n issue
+- [#13] Changed encryption cipher
+- [#9][#11] Allow change of QR-code "issuer" value
 
 GoogleAuthenticatorX 1.0.0-rc2
 ====================================

@@ -175,20 +175,18 @@ class GAx {
         $username = $this->user->get('username');
         
         $secret = $this->ga->createSecret();
-        $issuer = $this->modx->getOption('site_name');
+        $issuer = $this->modx->getOption('gax_issuer', null, $this->modx->getOption('site_name'));
         $mgrURLalt = $this->modx->getOption('manager_login_url_alternate');
         $mgrURL = empty($mgrURLalt) ? 
                 $this->modx->getOption('url_scheme').$this->modx->getOption('http_host').$this->modx->getOption('manager_url') : $mgrURLalt ;
         $accountname = $username . '::' . $mgrURL ;
         $uri    = $this->ga->getURI($accountname, $secret, $issuer);
         $QRurl  = $this->ga->getQRCodeGoogleUrl($accountname, $secret, $issuer);
-        $this->GAusrSettings = 
-                array (
-                    'incourtesy' => $this->IsCourtesyEnabled()? 'yes': 'no',
-                    'secret' => $secret,
-                    'uri'    => $uri,
-                    'qrurl'  => $QRurl
-                    );
+        $this->GAusrSettings = array (
+                                    'incourtesy' => $this->IsCourtesyEnabled()? 'yes': 'no',
+                                    'secret' => $secret,
+                                    'uri'    => $uri,
+                                    'qrurl'  => $QRurl);
         $this->userGAdisabled = $this->GetUserGAxStatus();
         $this->UserInCourtesy = $this->GetUserCourtesyStatus()? true: false;
     }
@@ -274,20 +272,21 @@ class GAx {
         return $DecryptedArray;
     }
     
-    private function encrypt($PlainText) {
-        $encryption_key =  $this->modx->uuid;
-        $iv_size = mcrypt_get_iv_size(MCRYPT_BLOWFISH, MCRYPT_MODE_ECB);
+    private function encrypt($plainText) {
+        $encryption_key =  str_replace('-','',$this->modx->uuid);
+        $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
         $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
-        $encrypted_string = mcrypt_encrypt(MCRYPT_BLOWFISH, $encryption_key, utf8_encode($PlainText), MCRYPT_MODE_ECB, $iv);
-        return base64_encode($encrypted_string);
+        $encrypted_string = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $encryption_key, $plainText, MCRYPT_MODE_CBC, $iv);
+        return base64_encode($iv . $encrypted_string);
     }
     
     private function decrypt($Cyphered) {
         $Cyphered = base64_decode($Cyphered);
-        $encryption_key =  $this->modx->uuid;
-        $iv_size = mcrypt_get_iv_size(MCRYPT_BLOWFISH, MCRYPT_MODE_ECB);
-        $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
-        $decrypted_string = mcrypt_decrypt(MCRYPT_BLOWFISH, $encryption_key, $Cyphered, MCRYPT_MODE_ECB, $iv);
+        $encryption_key =  str_replace('-','',$this->modx->uuid);
+        $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
+        $iv = substr($Cyphered, 0, $iv_size);
+        $Cyphered = substr($Cyphered, $iv_size);
+        $decrypted_string = mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $encryption_key, $Cyphered, MCRYPT_MODE_CBC, $iv);
         return $decrypted_string;
     }
     
