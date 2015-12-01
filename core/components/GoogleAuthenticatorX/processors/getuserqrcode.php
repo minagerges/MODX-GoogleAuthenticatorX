@@ -21,7 +21,7 @@ if(!$modx->user->hasSessionContext('mgr')){
     return $modx->error->failure( $modx->lexicon('permission_denied') );
 }
 else{
-    $userid = $modx->user->get('id');;
+    $userid = $modx->user->get('id');
     include_once $modx->getOption('core_path').'components/GoogleAuthenticatorX/model/googleauthenticator.class.php';
     $GA = new GAx($modx);
     $GA->LoadUserByID($userid);
