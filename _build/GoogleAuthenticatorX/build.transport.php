@@ -26,8 +26,8 @@ set_time_limit(0);
 /* define package names */
 define('PKG_NAME', 'GoogleAuthenticatorX');
 define('PKG_NAME_LOWER', strtolower(PKG_NAME));
-define('PKG_VERSION', '1.1.1');
-define('PKG_RELEASE', 'rc3');
+define('PKG_VERSION', '1.2.0');
+define('PKG_RELEASE', 'rc4');
 
 $root = dirname(dirname(dirname(__FILE__))).'/';
 $sources = array(
@@ -39,6 +39,7 @@ $sources = array(
     'source_assets' => $root.'assets/components/'.PKG_NAME,
     'lexicon' => $root . 'core/components/'.PKG_NAME.'/lexicon/',
     'plugins' => $root.'core/components/'.PKG_NAME.'/elements/plugins/',
+    'snippets' => $root.'core/components/'.PKG_NAME.'/elements/snippets/',
     'docs' => $root.'core/components/'.PKG_NAME.'/docs/'
 );
 unset($root);
@@ -56,7 +57,6 @@ $builder = new modPackageBuilder($modx);
 $builder->createPackage(PKG_NAME_LOWER, PKG_VERSION, PKG_RELEASE);
 $builder->registerNamespace(PKG_NAME, false,true,'{core_path}components/'.PKG_NAME.'/');
 
-
 /* load system settings */
 $modx->log(modX::LOG_LEVEL_INFO,'Packaging system settings...');
 $settings = include $sources['data'].'transport.settings.php';
@@ -71,6 +71,12 @@ foreach ($settings as $setting) {
     $builder->putVehicle($vehicle);
 }
 unset($settings,$setting,$attributes);
+
+/* create category */
+$category= $modx->newObject('modCategory');
+$category->set('id',1);
+$category->set('category',PKG_NAME);
+$modx->log(modX::LOG_LEVEL_INFO,'Packaged in category.');
 
 /* loading plugins */
 $modx->log(modX::LOG_LEVEL_INFO,'Packaging plugins..');
@@ -96,19 +102,39 @@ foreach ($plugins as $plugin) {
 $modx->log(modX::LOG_LEVEL_INFO,'Packaged in '.count($plugins).' plugins.'); flush();
 unset($plugins,$plugin,$attributes);
 
-/* create category */
-$category= $modx->newObject('modCategory');
-$category->set('id',1);
-$category->set('category',PKG_NAME);
-$modx->log(modX::LOG_LEVEL_INFO,'Packaged in category.');
+/* loading snippets */
+$modx->log(modX::LOG_LEVEL_INFO,'Packaging snippets..');
+$snippets = include $sources['data'].'transport.snippets.php';
+if (empty($snippets) || !is_array($snippets)){ $modx->log(modX::LOG_LEVEL_ERROR, 'Could not package in snippets.');}
+$attributes= array(
+    xPDOTransport::UNIQUE_KEY => 'name',
+    xPDOTransport::PRESERVE_KEYS => false,
+    xPDOTransport::UPDATE_OBJECT => true
+);
+foreach ($snippets as $snippet) {
+    $vehicle = $builder->createVehicle($snippet, $attributes);
+    $builder->putVehicle($vehicle);
+}
+$category->addMany($snippets);
+$modx->log(modX::LOG_LEVEL_INFO,'Packaged in '.count($snippets).' snippets.'); flush();
+unset($snippets,$snippet,$attributes);
+
 /* create category vehicle */
 $attr = array(
     xPDOTransport::UNIQUE_KEY => 'category',
     xPDOTransport::PRESERVE_KEYS => false,
     xPDOTransport::UPDATE_OBJECT => true,
-    xPDOTransport::RELATED_OBJECTS => false,
+    xPDOTransport::RELATED_OBJECTS => true,
+    xPDOTransport::RELATED_OBJECT_ATTRIBUTES => array (
+        'Snippets' => array(
+            xPDOTransport::PRESERVE_KEYS => false,
+            xPDOTransport::UPDATE_OBJECT => true,
+            xPDOTransport::UNIQUE_KEY => 'name',
+        ),
+    ),
 );
 $vehicle = $builder->createVehicle($category,$attr);
+
 /* file resolvers */
 $modx->log(modX::LOG_LEVEL_INFO,'Adding file resolvers to category...');
 $vehicle->resolve('file',array(

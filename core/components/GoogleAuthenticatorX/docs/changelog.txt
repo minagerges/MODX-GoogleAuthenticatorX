@@ -1,5 +1,9 @@
 Changelog file for GoogleAuthenticatorX ModX extra.
 
+GoogleAuthenticatorX 1.2.0-rc4
+====================================
+- Added "Login" extra integration hook
+
 GoogleAuthenticatorX 1.1.1-rc3
 ====================================
 - Fixed corrupted transport package

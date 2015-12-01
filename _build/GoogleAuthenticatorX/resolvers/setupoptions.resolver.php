@@ -92,6 +92,7 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
             $modx->log(modX::LOG_LEVEL_ERROR,"Failed to detect previous release, skipping user data migration.");
         }
         $legacyPackage = $modx->fromJSON($response->response)['results'];
+        $modx->log(modX::LOG_LEVEL_INFO, print_r($legacyPackage, true));
         if(!empty($legacyPackage) && $legacyPackage['0']['package_name'] == 'GoogleAuthenticatorX' ){
             $version = $legacyPackage['0']['version'];
             $release = $legacyPackage['0']['release'];
