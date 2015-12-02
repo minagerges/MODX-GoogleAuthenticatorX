@@ -18,16 +18,27 @@
   *  Place, Suite 330, Boston, MA 02111-1307 USA
  */
 $userid = $modx->getOption('userID', $scriptProperties, $modx->user->get('id'));
+$size = $modx->getOption('size', $scriptProperties, '200');
 if($userid == 0){
     return;
 }
-$placeHolder = $modx->getOption('toPlaceholder', $scriptProperties, 'qrCode');
+$placeHolder = $modx->getOption('toPlaceholder', $scriptProperties, 'gax');
 include_once $modx->getOption('core_path').'components/GoogleAuthenticatorX/model/googleauthenticator.class.php';
 $GA = new GAx($modx);
 $GA->LoadUserByID($userid);
 $gaSettings = $GA->GetDecryptedSettingsArray();
 $qrCode = '';
 if ($gaSettings) {
-    $modx->setPlaceholder($placeHolder, $gaSettings['qrurl']);
+    $user = $modx->getObject('modUser', $userid);
+    $username = $user->get('username');
+    $accountname = $username . '::' . $modx->getOption('site_url') ;
+    $secret = $gaSettings['secret'];
+    $issuer = $modx->getOption('gax_issuer', null, $modx->getOption('site_name'));
+    if(empty($issuer)){ $issuer = $modx->getOption('site_url'); }
+    $uri = 'otpauth://totp/'.$accountname.'?secret='.$secret.'&issuer='.$issuer;
+    $urlencoded = urlencode($uri);
+    $imgPath = 'https://chart.googleapis.com/chart?chs='.$size.'x'.$size.'&chld=M|0&cht=qr&chl='.$urlencoded;
+
+    $modx->setPlaceholders(array('secret'=>$secret, 'uri'=>$uri, 'qrCode'=> $imgPath), $placeHolder . '.');
 }
 return;

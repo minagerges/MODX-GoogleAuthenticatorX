@@ -1,5 +1,13 @@
 Changelog file for GoogleAuthenticatorX ModX extra.
 
+GoogleAuthenticatorX 1.2.2-rc4
+====================================
+- Fixed legacy package data migration
+
+GoogleAuthenticatorX 1.2.1-rc4
+====================================
+- Enhanced GAxUserQRcode snippet
+
 GoogleAuthenticatorX 1.2.0-rc4
 ====================================
 - Added "Login" extra integration hook

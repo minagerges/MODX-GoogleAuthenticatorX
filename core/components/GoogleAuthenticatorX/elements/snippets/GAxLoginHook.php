@@ -17,12 +17,17 @@
   *  WipeCache; if not, write to the Free Software Foundation, Inc., 59 Temple
   *  Place, Suite 330, Boston, MA 02111-1307 USA
  */
-$username = $hook->getValue('username');
-$gacode = $hook->getValue('token');
+$props = $hook->getValues();
+$username = $props['username'];
+$gacode = $props['token'];
 $modx->getService('lexicon','modLexicon');
-$modx->lexicon->load('GoogleAuthenticatorX');
+$modx->lexicon->load('GoogleAuthenticatorX:default');
 $errorMsg = $modx->lexicon('gax.invalidcode');
 $failMessage = $modx->getOption('2FAerror', $scriptProperties, $errorMsg);
+
+if($props['service'] != 'login'){
+    return true;
+}
 
 if(empty($username)){
     return false;

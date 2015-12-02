@@ -87,17 +87,18 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
         /* Upgrade old cipher for older releases */
         //check previous version
         $legacyPackageExist = false;
-        $response = $modx->runProcessor('workspace/packages/getlist', array('search' => 'googleauthenticatorx') );
+        $response = $modx->runProcessor('workspace/packages/version/getlist', array('signature' => 'googleauthenticatorx') );
         if ($response->isError()) {
             $modx->log(modX::LOG_LEVEL_ERROR,"Failed to detect previous release, skipping user data migration.");
         }
         $legacyPackage = $modx->fromJSON($response->response)['results'];
-        $modx->log(modX::LOG_LEVEL_INFO, print_r($legacyPackage, true));
-        if(!empty($legacyPackage) && $legacyPackage['0']['package_name'] == 'GoogleAuthenticatorX' ){
-            $version = $legacyPackage['0']['version'];
-            $release = $legacyPackage['0']['release'];
+        if(!empty($legacyPackage) && !empty($legacyPackage['1']) && is_array($legacyPackage['1']) ){
+            $version = $legacyPackage['1']['version'];
+            $release = $legacyPackage['1']['release'];
+            $modx->log(modX::LOG_LEVEL_INFO, "previouse release: $version-$release");
             if($version == '1.0.0' && ($release == 'rc1' || $release == 'rc2') ) {
                 $legacyPackageExist = true;
+                $modx->log(modX::LOG_LEVEL_WARN,"Migration of user data required!");
             }
         }
         else{
@@ -220,13 +221,14 @@ function meetsRequirements(){
 
 function legacyDecrypt($Cyphered, $key){
     $Cyphered = base64_decode($Cyphered);
-    $iv_size = mcrypt_get_iv_size(MCRYPT_BLOWFISH, MCRYPT_MODE_ECB);
-    $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
-    $decrypted_string = mcrypt_decrypt(MCRYPT_BLOWFISH, $key, $Cyphered, MCRYPT_MODE_ECB, $iv);
+    $liv_size = mcrypt_get_iv_size(MCRYPT_BLOWFISH, MCRYPT_MODE_ECB);
+    $liv = mcrypt_create_iv($liv_size, MCRYPT_RAND);
+    $decrypted_string = mcrypt_decrypt(MCRYPT_BLOWFISH, $key, $Cyphered, MCRYPT_MODE_ECB, $liv);
     return $decrypted_string;
 }
 
 function encrypt($plainTXT, $key){
+    $key = str_replace('-','',$key);
     $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
     $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
     $encrypted_string = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key, $plainTXT, MCRYPT_MODE_CBC, $iv);
