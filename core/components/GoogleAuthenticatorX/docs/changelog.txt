@@ -1,5 +1,9 @@
 Changelog file for GoogleAuthenticatorX ModX extra.
 
+GoogleAuthenticatorX 1.3.0-pl
+====================================
+- Add remember me
+
 GoogleAuthenticatorX 1.2.2-rc4
 ====================================
 - Fixed legacy package data migration

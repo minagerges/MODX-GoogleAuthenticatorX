@@ -31,10 +31,14 @@ $_lang['setting_gax_profile_enabled'] = 'Show secret in users profile';
 $_lang['setting_gax_profile_enabled_desc'] = 'Allow users to see Google Authentication secret in their manager user profile.';
 $_lang['setting_gax_issuer'] = 'QR-code issuer value';
 $_lang['setting_gax_issuer_desc'] = 'Set the QR-code issuer value, default to site_name';
+$_lang['setting_gax_remember_period'] = 'Remember Period';
+$_lang['setting_gax_remember_period_desc'] = 'Number of days to not require 2FA for user. 0 will disable remember function.';
+
 
 $_lang['gax.authkey'] = 'Authentication Key';
+$_lang['gax.remember'] = "Do not require key for [[+period]] days";
 $_lang['gax.enterkey'] = 'Please enter Authentication key!';
-$_lang['gax.invalidformat'] = 'Invlid authentication key format, expecting 6 digits!';
+$_lang['gax.invalidformat'] = 'Invalid authentication key format, expecting 6 digits!';
 $_lang['gax.invalidcode'] = 'Invalid authentication key.';
 
 $_lang['gax.hello'] = 'Hello';
