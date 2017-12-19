@@ -22,6 +22,8 @@ switch($eventName) {
     case 'OnBeforeManagerLogin': /* validate authentication code */
         $username = $_POST['username'];
         $gacode = $_POST['ga_code'];
+        $remember = isset($_POST['ga_remember']) ? $_POST['ga_remember'] : 0;
+        $remember = intval($remember) === 1;
         $output = '';
         include_once $modx->getOption('core_path')."components/GoogleAuthenticatorX/model/googleauthenticator.class.php";
         $GA = new GAx($modx);
@@ -40,13 +42,17 @@ switch($eventName) {
                 $output = true;
                 $modx->log(modX::LOG_LEVEL_ERROR,"GoogleAuthenticatorX: user:($username) logged in courtesy mode." );
             }
+            else if (empty($gacode) && $GA->stillRecall()) {
+                $modx->log(modX::LOG_LEVEL_ERROR,"GoogleAuthenticatorX: user:($username) logged in remember mode." );
+                $output = true;
+            }
             else if(empty($gacode)) {
                  $output = $modx->lexicon('gax.enterkey');
             }
             else if(preg_match("/^[0-9]{6}$/",$gacode) < 1) { 
                 $output = $modx->lexicon('gax.invalidformat');
             }
-            else if($GA->UserCodeMatch($gacode)){ 
+            else if($GA->UserCodeMatch($gacode, $remember)){ 
                 $output = true;
             }
             else{
@@ -66,8 +72,15 @@ switch($eventName) {
                     . '<label for="GoogleAuthenticator">&nbsp;'.$modx->lexicon('gax.authkey')
                     . '<div class="x-form-element ">'
                     . '<input type="text" name="ga_code" value="" tabindex="2" autocomplete="off" maxlength="6"'
-                    . 'class="x-form-text x-form-field" placeholder="'.$modx->lexicon('gax.authkey').'"/></label>'
-                    . '</div>'
+                    . 'class="x-form-text x-form-field" placeholder="'.$modx->lexicon('gax.authkey').'"/></label>';
+
+            $rememberPeriod = intval($modx->getOption('gax_remember_period', null, 30));
+            if ($rememberPeriod > 0) {
+                $output .= '<div class="x-form-check-wrap modx-login-rm-cb" style="float: none;"><input type="checkbox" name="ga_remember" id="ga_remember" value="1" class="x-form-checkbox x-form-field">'
+                        .'<label class="x-form-cb-label" for="ga_remember">'.$modx->lexicon('gax.remember', array('period' => $rememberPeriod)).'</label></div>';
+            }
+            
+            $output .= '</div>'
                     . '</div>';
             $modx->event->_output = $output;
         }

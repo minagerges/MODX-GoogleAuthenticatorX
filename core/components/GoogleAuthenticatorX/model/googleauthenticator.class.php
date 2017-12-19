@@ -46,11 +46,17 @@ class GAx {
         }
     }
     
-    public function UserCodeMatch($EnteredCode){
+    public function UserCodeMatch($EnteredCode, $remember = false){
         $secret = $this->GAusrSettings['secret'];
         if ($secret) { //split to no user found and secret not found
             $code = $this->ga->getCode($secret); // Recalculated for logging
             if ($this->ga->verifyCode($secret, $EnteredCode, 2)) {
+                if ($remember) {
+                    $rememberPeriod = intval($this->modx->getOption('gax_remember_period', null, 30));
+                    if ($rememberPeriod > 0) {
+                        $this->rememberUser();
+                    }
+                }
                 return true;
             }
             else {
@@ -253,6 +259,21 @@ class GAx {
         }
         $this->userGAdisabled = $status;
     }
+
+    public function stillRecall()
+    {
+        $remember = isset($this->GAusrSettings['remember']) ? $this->GAusrSettings['remember'] : 0;
+        $remember = intval($remember);
+        
+        return (time() < $remember);
+        
+    }
+    
+    private function rememberUser()
+    {
+        $this->GAusrSettings['remember'] = time() + (intval($this->modx->getOption('gax_remember_period', null, 30)) * 24 * 60 * 60);
+        $this->SaveGAuserSettings();
+    }
     
     private function GetEncryptedArray(){
         $EncryptedSettings = array();
@@ -260,6 +281,7 @@ class GAx {
         $EncryptedSettings['secret'] = $this->encrypt($this->GAusrSettings['secret']);
         $EncryptedSettings['uri']    = $this->encrypt($this->GAusrSettings['uri']);
         $EncryptedSettings['qrurl']  = $this->encrypt($this->GAusrSettings['qrurl']);
+        $EncryptedSettings['remember'] = $this->encrypt($this->GAusrSettings['remember']);
         return $EncryptedSettings;
     }
     
@@ -269,6 +291,7 @@ class GAx {
         $DecryptedArray['secret'] = $this->decrypt($CypheredArray['secret']);
         $DecryptedArray['uri'] = $this->decrypt($CypheredArray['uri']);
         $DecryptedArray['qrurl'] = $this->decrypt($CypheredArray['qrurl']);
+        $DecryptedArray['remember'] = $this->decrypt($CypheredArray['remember']);
         return $DecryptedArray;
     }
     
