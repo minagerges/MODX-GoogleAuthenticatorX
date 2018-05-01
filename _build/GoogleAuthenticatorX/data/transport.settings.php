@@ -22,7 +22,8 @@ $s = array(
     'gax_disabled' => true,
     'gax_courtesy_enabled' => true,
     'gax_profile_enabled' => false,
-    'gax_issuer' => ''
+    'gax_issuer' => '',
+    'gax_encrypt_key' => ''
 );
 
 $settings = array();

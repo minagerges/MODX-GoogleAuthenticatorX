@@ -25,6 +25,10 @@ class GAx {
 
     private $ga   = '';
     private $modx = '';
+
+    private $encryptKey;
+    private $ivKey;
+    private $method = 'AES-256-CBC';
     
     private $user = array();
     private $GAusrSettings = array();
@@ -35,6 +39,12 @@ class GAx {
         $this->ga = new PHPGangsta_GoogleAuthenticator();
         $this->modx->getService('lexicon','modLexicon'); 
         $this->modx->lexicon->load('GoogleAuthenticatorX:default');
+        $this->encryptKey = $this->modx->getOption('gax_encrypt_key');
+
+        /* Generate key if not is set */
+        if (!$this->encryptKey) {
+            $this->encryptKey = $this->generateKey();
+        }
     }
     
     public function UserDisabled(){
@@ -183,10 +193,12 @@ class GAx {
         $uri    = $this->ga->getURI($accountname, $secret, $issuer);
         $QRurl  = $this->ga->getQRCodeGoogleUrl($accountname, $secret, $issuer);
         $this->GAusrSettings = array (
-                                    'incourtesy' => $this->IsCourtesyEnabled()? 'yes': 'no',
-                                    'secret' => $secret,
-                                    'uri'    => $uri,
-                                    'qrurl'  => $QRurl);
+            'incourtesy' => $this->IsCourtesyEnabled()? 'yes': 'no',
+            'secret'     => $secret,
+            'uri'        => $uri,
+            'qrurl'      => $QRurl,
+            'ivKey'      => substr(hash('sha256', md5($this->encryptkey)), 0, 16),
+        );
         $this->userGAdisabled = $this->GetUserGAxStatus();
         $this->UserInCourtesy = $this->GetUserCourtesyStatus()? true: false;
     }
@@ -260,6 +272,7 @@ class GAx {
         $EncryptedSettings['secret'] = $this->encrypt($this->GAusrSettings['secret']);
         $EncryptedSettings['uri']    = $this->encrypt($this->GAusrSettings['uri']);
         $EncryptedSettings['qrurl']  = $this->encrypt($this->GAusrSettings['qrurl']);
+        $EncryptedSettings['ivKey']  = $this->GAusrSettings['ivKey'];
         return $EncryptedSettings;
     }
     
@@ -273,21 +286,40 @@ class GAx {
     }
     
     private function encrypt($plainText) {
-        $encryption_key =  str_replace('-','',$this->modx->uuid);
-        $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
-        $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
-        $encrypted_string = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $encryption_key, $plainText, MCRYPT_MODE_CBC, $iv);
-        return base64_encode($iv . $encrypted_string);
+
+        if (!function_exists('openssl_encrypt')) {
+            $this->log(error, 'openssl_encrypt is not available. Please install OpenSSL. See http://www.php.net/manual/en/openssl.requirements.php for more information.');
+            return false;
+        }
+        $value = base64_encode(openssl_encrypt($plainText, $this->method, $this->encryptKey, 0, $this->ivKey));
+        return $value;
     }
     
     private function decrypt($Cyphered) {
-        $Cyphered = base64_decode($Cyphered);
-        $encryption_key =  str_replace('-','',$this->modx->uuid);
-        $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
-        $iv = substr($Cyphered, 0, $iv_size);
-        $Cyphered = substr($Cyphered, $iv_size);
-        $decrypted_string = mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $encryption_key, $Cyphered, MCRYPT_MODE_CBC, $iv);
-        return $decrypted_string;
+        if (!function_exists('openssl_decrypt')) {
+            $this->log(error, 'openssl_decrypt is not available. Please install OpenSSL. See http://www.php.net/manual/en/openssl.requirements.php for more information.');
+            return false;
+        }
+        /* Return default openssl decrypted values */
+        return openssl_decrypt(base64_decode($Cyphered), $this->method, $this->encryptKey, 0, $this->ivKey);
+    }
+
+    private function generateKey() {
+        $encryptkey = hash('sha256', $this->modx->getOption('site_name'));
+        $setting = $this->modx->getObject(
+            'modSystemSetting',
+            array('key' => 'gax_encrypt_key')
+        );
+        if (!$setting) {
+            $setting = $this->modx->newObject('modSystemSetting');
+            $setting->set('key', 'gax_encrypt_key');
+            $setting->set('namespace', 'GoogleAuthenticatorX');
+        }
+        $setting->set('value', $encryptkey);
+        $setting->save();
+
+        /* return generated encryption key */
+        return $encryptkey;
     }
     
     private function log ($loglevel, $msg){
