@@ -39,6 +39,8 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
             break;
         }
 
+        setEncrptKeySetting();
+
         if($options['sendnotifymail']){ /* Email all users with manager access */
             $modx->getService('lexicon','modLexicon');
             $modx->log(modX::LOG_LEVEL_WARN,'Started sending emails to users with manager access...');
@@ -143,6 +145,8 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
             }
         }
 
+        setEncrptKeySetting();
+
         $success = true;
         break;
     
@@ -233,4 +237,24 @@ function encrypt($plainTXT, $key){
     $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
     $encrypted_string = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key, $plainTXT, MCRYPT_MODE_CBC, $iv);
     return base64_encode($iv . $encrypted_string);
+}
+
+function setEncrptKeySetting() {
+    $gax_enckey_setting = $this->modx->getObject('modSystemSetting', array('key' => 'gax_encrypt_key'));
+    if(!$gax_enckey_setting) {
+        $gax_enckey_setting = $this->modx->newObject('modSystemSetting');
+        $gax_enckey_setting->set('key', 'gax_encrypt_key');
+        $gax_enckey_setting_settings = array(
+            'value' => str_replace('-','', $this->modx->uuid),
+            'xtype' => 'password',
+            'namespace' => 'GoogleAuthenticatorX',
+            'area' => 'Default'
+        );
+        $gax_enckey_setting->fromArray($gax_enckey_setting_settings);
+        $gax_enckey_setting->save();
+    }
+    else if($gax_enckey_setting->get('value') == '') {
+        $gax_enckey_setting->set('value', str_replace('-','', $this->modx->uuid));
+        $gax_enckey_setting->save();
+    }
 }

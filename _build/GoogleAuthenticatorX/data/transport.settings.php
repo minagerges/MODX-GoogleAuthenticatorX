@@ -22,13 +22,22 @@ $s = array(
     'gax_disabled' => true,
     'gax_courtesy_enabled' => true,
     'gax_profile_enabled' => false,
-    'gax_issuer' => ''
+    'gax_issuer' => '',
+    'gax_encrypt_key' => '*',
 );
 
 $settings = array();
 
 foreach ($s as $key => $value) {
-    if (is_string($value) || is_int($value)) { $type = 'textfield'; }
+    if (is_string($value) || is_int($value)) {
+        if ($value == '*') {
+            $type = 'password';
+            $value = '';
+        }
+        else {
+            $type = 'textfield';
+        }
+    }
     elseif (is_bool($value)) { $type = 'combo-boolean'; }
     else { $type = 'textfield'; }
     $parts = explode('.',$key);

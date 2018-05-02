@@ -273,7 +273,7 @@ class GAx {
     }
     
     private function encrypt($plainText) {
-        $encryption_key =  str_replace('-','',$this->modx->uuid);
+        $encryption_key =  $this->modx->getOption('gax_encrypt_key', null, str_replace('-','', $this->modx->uuid));
         $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
         $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
         $encrypted_string = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $encryption_key, $plainText, MCRYPT_MODE_CBC, $iv);
@@ -282,7 +282,7 @@ class GAx {
     
     private function decrypt($Cyphered) {
         $Cyphered = base64_decode($Cyphered);
-        $encryption_key =  str_replace('-','',$this->modx->uuid);
+        $encryption_key =  $this->modx->getOption('gax_encrypt_key', null, str_replace('-','', $this->modx->uuid));
         $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
         $iv = substr($Cyphered, 0, $iv_size);
         $Cyphered = substr($Cyphered, $iv_size);

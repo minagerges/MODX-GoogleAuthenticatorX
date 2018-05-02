@@ -26,8 +26,8 @@ set_time_limit(0);
 /* define package names */
 define('PKG_NAME', 'GoogleAuthenticatorX');
 define('PKG_NAME_LOWER', strtolower(PKG_NAME));
-define('PKG_VERSION', '1.2.2');
-define('PKG_RELEASE', 'rc4');
+define('PKG_VERSION', '1.2.3');
+define('PKG_RELEASE', 'rc5');
 
 $root = dirname(dirname(dirname(__FILE__))).'/';
 $sources = array(
