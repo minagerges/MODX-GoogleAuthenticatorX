@@ -1,2 +1,4 @@
-!.gitignoe
+!.gitignore
+.idea
+.idea/*
 nbproject/*
