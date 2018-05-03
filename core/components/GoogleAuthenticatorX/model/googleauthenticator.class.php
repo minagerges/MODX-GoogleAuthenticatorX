@@ -28,6 +28,10 @@ class GAx {
     
     private $user = array();
     private $GAusrSettings = array();
+
+    private $cipherMethod   = 'AES-256-CBC';
+    private $cipherOptions  = OPENSSL_RAW_DATA & OPENSSL_ZERO_PADDING;
+    private $encryptionKey, $userIV;
     
     function __construct(modX &$modx) {
         $this->modx =& $modx;
@@ -35,6 +39,14 @@ class GAx {
         $this->ga = new PHPGangsta_GoogleAuthenticator();
         $this->modx->getService('lexicon','modLexicon'); 
         $this->modx->lexicon->load('GoogleAuthenticatorX:default');
+        $encryptionKey = $this->modx->getOption('gax_encrypt_key');
+        if($encryptionKey && preg_match('/^[0-9A-Fa-f]{64}$/', $encryptionKey)) {
+            $this->encryptionKey = $encryptionKey;
+        }
+        else {
+            $this->log('error', 'Invalid encryption key returned by "getOption", validating global setting...');
+            $this->validateEncryptionKey();
+        }
     }
     
     public function UserDisabled(){
@@ -130,10 +142,19 @@ class GAx {
     private function GetGAuserSettings(){   //populate the GA extended field to $this->GAuserSettings array
         $profile = $this->user->getOne('Profile');
         $extended = $profile->get('extended');
-        if ($extended['GoogleAuthenticatorX']){ //if no settings in DB, accessing ['GoogleAuthenticatorX']['Settings'] throws "Fatal error: Cannot use string offset as an array" 
-            $gaSettings = $extended['GoogleAuthenticatorX']['Settings'];
+        $gaSettings = null;
+        if (is_array($extended) && array_key_exists('GoogleAuthenticatorX', $extended)){
+            if(is_array($extended['GoogleAuthenticatorX']) && array_key_exists('Settings', $extended['GoogleAuthenticatorX']) ) {
+                $gaSettings = $extended['GoogleAuthenticatorX']['Settings'];
+            }
         }
-        if ($gaSettings) { // extended field container in place, we load settings.
+        if (is_array($gaSettings)) { // extended field container in place, we load settings.
+            $this->userIV = base64_decode($gaSettings['iv']);
+            // Validate IV to avoid php warning
+            if(strlen(bin2hex($this->userIV))/2 != 16) {
+                $this->userIV = $this->generateIV();
+                $this->log(error, "Invalid stored IV, for user:({$this->UserName}) id:{$this->UserID}");
+            }
             $this->GAusrSettings = $this->GetDecryptedArray($gaSettings);
             $this->GAusrSettings['incourtesy'] = preg_replace( '/[^[:print:]]/', '',$this->GAusrSettings['incourtesy']); //fix issue with decrypted string
             if(!$this->ValidSecret($this->GAusrSettings['secret'])){
@@ -149,7 +170,7 @@ class GAx {
             $this->CreateDefaultSettings();
             $this->SaveGAuserSettings();
         }
-        
+
     }
     
     private function ValidSecret($secret){
@@ -182,11 +203,14 @@ class GAx {
         $accountname = $username . '::' . $mgrURL ;
         $uri    = $this->ga->getURI($accountname, $secret, $issuer);
         $QRurl  = $this->ga->getQRCodeGoogleUrl($accountname, $secret, $issuer);
+        $this->userIV = $this->generateIV();
         $this->GAusrSettings = array (
-                                    'incourtesy' => $this->IsCourtesyEnabled()? 'yes': 'no',
-                                    'secret' => $secret,
-                                    'uri'    => $uri,
-                                    'qrurl'  => $QRurl);
+            'incourtesy' => $this->IsCourtesyEnabled()? 'yes': 'no',
+            'secret' => $secret,
+            'uri'    => $uri,
+            'qrurl'  => $QRurl,
+            'iv'     => base64_encode($this->userIV),
+        );
         $this->userGAdisabled = $this->GetUserGAxStatus();
         $this->UserInCourtesy = $this->GetUserCourtesyStatus()? true: false;
     }
@@ -260,36 +284,56 @@ class GAx {
         $EncryptedSettings['secret'] = $this->encrypt($this->GAusrSettings['secret']);
         $EncryptedSettings['uri']    = $this->encrypt($this->GAusrSettings['uri']);
         $EncryptedSettings['qrurl']  = $this->encrypt($this->GAusrSettings['qrurl']);
+        $EncryptedSettings['iv']     = base64_encode($this->userIV);
         return $EncryptedSettings;
     }
     
     private function GetDecryptedArray($CypheredArray){
         $DecryptedArray = array();
-        $DecryptedArray['incourtesy'] = $this->decrypt($CypheredArray['incourtesy']);
-        $DecryptedArray['secret'] = $this->decrypt($CypheredArray['secret']);
-        $DecryptedArray['uri'] = $this->decrypt($CypheredArray['uri']);
-        $DecryptedArray['qrurl'] = $this->decrypt($CypheredArray['qrurl']);
+        $DecryptedArray['incourtesy']   = $this->decrypt($CypheredArray['incourtesy']);
+        $DecryptedArray['secret']       = $this->decrypt($CypheredArray['secret']);
+        $DecryptedArray['uri']          = $this->decrypt($CypheredArray['uri']);
+        $DecryptedArray['qrurl']        = $this->decrypt($CypheredArray['qrurl']);
+        $DecryptedArray['iv']           = $CypheredArray['iv'];
         return $DecryptedArray;
     }
     
     private function encrypt($plainText) {
-        $encryption_key =  $this->modx->getOption('gax_encrypt_key', null, str_replace('-','', $this->modx->uuid));
-        $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
-        $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
-        $encrypted_string = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $encryption_key, $plainText, MCRYPT_MODE_CBC, $iv);
-        return base64_encode($iv . $encrypted_string);
+        return openssl_encrypt($plainText, $this->cipherMethod, $this->encryptionKey, $this->cipherOptions, $this->userIV);
     }
     
-    private function decrypt($Cyphered) {
-        $Cyphered = base64_decode($Cyphered);
-        $encryption_key =  $this->modx->getOption('gax_encrypt_key', null, str_replace('-','', $this->modx->uuid));
-        $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
-        $iv = substr($Cyphered, 0, $iv_size);
-        $Cyphered = substr($Cyphered, $iv_size);
-        $decrypted_string = mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $encryption_key, $Cyphered, MCRYPT_MODE_CBC, $iv);
-        return $decrypted_string;
+    private function decrypt($cypheredString) {
+        return openssl_decrypt($cypheredString, $this->cipherMethod, $this->encryptionKey, $this->cipherOptions, $this->userIV);
     }
-    
+
+    private function validateEncryptionKey($overwriteValid = false) {
+        $encryptionKey_setting =  $this->modx->getObject('modSystemSetting', array('key' => 'gax_encrypt_key'));
+        if(!$encryptionKey_setting) {
+            $encryptionKey_setting = $this->modx->newObject('modSystemSetting');
+            $encryptionKey_setting->set('key', 'gax_encrypt_key');
+            $encryptionKey_setting_arr = array(
+                'value' => bin2hex(openssl_random_pseudo_bytes(32)),
+                'xtype' => 'password',
+                'namespace' => 'GoogleAuthenticatorX',
+                'area' => 'Default'
+            );
+            $encryptionKey_setting->fromArray($encryptionKey_setting_arr);
+            $encryptionKey_setting->save();
+            $this->log(error, 'Created encryption key in system settings!');
+        }
+        if(!preg_match('/^[0-9A-Fa-f]{64}$/', $encryptionKey_setting->get('value'))) {
+            $encryptionKey_setting->set('value', hash('sha256', $this->modx->uuid));
+            $encryptionKey_setting->save();
+            $this->log(error, 'Invalid encryption key in system settings! Value was reset.');
+        }
+        $this->encryptionKey = $encryptionKey_setting->get('value');
+    }
+
+    private function generateIV() {
+        $ivlen = openssl_cipher_iv_length($this->cipherMethod);
+        return openssl_random_pseudo_bytes($ivlen);
+    }
+
     private function log ($loglevel, $msg){
         switch($loglevel){
             case 'info':

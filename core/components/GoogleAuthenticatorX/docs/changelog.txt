@@ -1,5 +1,11 @@
 Changelog file for GoogleAuthenticatorX ModX extra.
 
+GoogleAuthenticatorX 1.3.0-rc1
+====================================
+- Replace deprecated mcrypt with OpenSSL
+- Fixed issue causing 2FA secrets reset upon MODx upgrade
+- Code enhancements
+
 GoogleAuthenticatorX 1.2.2-rc4
 ====================================
 - Fixed legacy package data migration

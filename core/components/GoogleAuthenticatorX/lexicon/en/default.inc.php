@@ -31,6 +31,8 @@ $_lang['setting_gax_profile_enabled'] = 'Show secret in users profile';
 $_lang['setting_gax_profile_enabled_desc'] = 'Allow users to see Google Authentication secret in their manager user profile.';
 $_lang['setting_gax_issuer'] = 'QR-code issuer value';
 $_lang['setting_gax_issuer_desc'] = 'Set the QR-code issuer value, default to site_name';
+$_lang['setting_gax_encrypt_key'] = 'Encryption key';
+$_lang['setting_gax_encrypt_key_desc'] = 'Encryption key used for 2FA data encryption. Do not change. Must match cipher method key requirement (64 HEX characters) subject to change.';
 
 $_lang['gax.authkey'] = 'Authentication Key';
 $_lang['gax.enterkey'] = 'Please enter Authentication key!';

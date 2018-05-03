@@ -26,7 +26,7 @@ $output = <<<HTML
 <br/>
 <div style="padding-left: 20px;">       
     <input type="checkbox" name="sendnotifymail" checked  /> 
-    <label for="sendnotifymail" style="display: inline;">Email users with manager access</label>
+    <i for="sendnotifymail" style="display: inline;">Email users with manager access <i>(New install only)</i></label>
     <br/><br/>
     <input type="checkbox" name="enablegax"/> 
     <label for="enablegax" style="display: inline;">Enable 2-factor verification</label>

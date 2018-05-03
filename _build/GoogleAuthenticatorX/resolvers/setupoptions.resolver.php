@@ -32,9 +32,10 @@ if (!isset($modx)) {
 $success= false;
 switch ($options[xPDOTransport::PACKAGE_ACTION]) {
     case xPDOTransport::ACTION_INSTALL:
+        $modx->log(modX::LOG_LEVEL_INFO, "xPDOTransport::ACTION_INSTALL");
         /*Validate requirements*/
         if(!meetsRequirements()){
-            $modx->log(modX::LOG_LEVEL_ERROR,"Installation requirements not met: php version > 5.3 AND/OR mcrypt extension not loaded.");
+            $modx->log(modX::LOG_LEVEL_ERROR,"Installation requirements not met: php version > 5.4 AND/OR OpenSSL encryption/decryption failed.");
             $success = false;
             break;
         }
@@ -79,12 +80,14 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
         break;
 
     case xPDOTransport::ACTION_UPGRADE:
+        $modx->log(modX::LOG_LEVEL_INFO, "xPDOTransport::ACTION_UPGRADE");
         /* Validate requirements */
         if(!meetsRequirements()){
-            $modx->log(modX::LOG_LEVEL_ERROR,"Installation requirements not met: php version > 5.3 AND/OR mcrypt extension not loaded.");
+            $modx->log(modX::LOG_LEVEL_ERROR,"Installation requirements not met: php version > 5.4 AND/OR OpenSSL encryption/decryption failed.");
             $success = false;
             break;
         }
+        setEncrptKeySetting();
 
         /* Upgrade old cipher for older releases */
         //check previous version
@@ -94,13 +97,22 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
             $modx->log(modX::LOG_LEVEL_ERROR,"Failed to detect previous release, skipping user data migration.");
         }
         $legacyPackage = $modx->fromJSON($response->response)['results'];
-        if(!empty($legacyPackage) && !empty($legacyPackage['1']) && is_array($legacyPackage['1']) ){
-            $version = $legacyPackage['1']['version'];
-            $release = $legacyPackage['1']['release'];
-            $modx->log(modX::LOG_LEVEL_INFO, "previouse release: $version-$release");
-            if($version == '1.0.0' && ($release == 'rc1' || $release == 'rc2') ) {
-                $legacyPackageExist = true;
+        $pkgidx;
+        if(!empty($legacyPackage['0'])) {
+            if($legacyPackage['0']['installed']) {
+                $pkgidx = 0;
+            }
+            else {
+                $pkgidx = 1;
+            }
+        }
+        $modx->log(modX::LOG_LEVEL_INFO, "Detected previous install idx[$pkgidx]: " . $legacyPackage[$pkgidx]['signature']);
+        if(!empty($legacyPackage) && !empty($legacyPackage[$pkgidx]) && is_array($legacyPackage[$pkgidx]) ){
+            $version_major = $legacyPackage[$pkgidx]['version_major'];
+            $version_minor = $legacyPackage[$pkgidx]['version_minor'];
+            if($version_major == 1 && $version_minor <= 2) {
                 $modx->log(modX::LOG_LEVEL_WARN,"Migration of user data required!");
+                $legacyPackageExist = true;
             }
         }
         else{
@@ -108,45 +120,55 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
         }
 
         if($legacyPackageExist == true) {
-            $modx->log(modX::LOG_LEVEL_WARN,"Previous version detected, re-encrypting data...");
+            $modx->log(modX::LOG_LEVEL_WARN,"Legacy version detected, re-encrypting data...");
             //Re-encrypt user data
-            $mgrCtx = $modx->getObject('modContext', array('key' => 'mgr'));
+            $encKeySetting = $modx->getObject('modSystemSetting', array('key' => 'gax_encrypt_key'));
+            $encKey = $encKeySetting->get('value');
             $users = $modx->getCollection('modUser');
             foreach ($users as $iuser) {
-                if (checkPolicy('frames', $mgrCtx, $iuser)) {
-                    $modx->log(modX::LOG_LEVEL_INFO,"Re-encrypting data for user: " . $iuser->get('username'));
-                    $profile = $iuser->getOne('Profile');
-                    $extended = $profile->get('extended');
-                    if ($extended['GoogleAuthenticatorX']){
+                $modx->log(modX::LOG_LEVEL_INFO,"Validating data for user: " . $iuser->get('username'));
+                $profile = $iuser->getOne('Profile');
+                $extended = $profile->get('extended');
+                if(is_array($extended) && array_key_exists('GoogleAuthenticatorX', $extended)){
+                    if(is_array($extended['GoogleAuthenticatorX']) && array_key_exists('Settings', $extended['GoogleAuthenticatorX']) ) {
+                        $modx->log(modX::LOG_LEVEL_INFO,"Re-encrypting data for user: " . $iuser->get('username'));
                         $gaSettings = $extended['GoogleAuthenticatorX']['Settings'];
-                    }
-                    if ($gaSettings) {
-                        $uKey = $modx->uuid;
-                        $incourtesy = legacyDecrypt($gaSettings['incourtesy'], $uKey);
-                        $incourtesy = encrypt($incourtesy, $uKey);
-                        $secret = legacyDecrypt($gaSettings['secret'], $uKey);
-                        $secret = encrypt($secret, $uKey);
-                        $uri = legacyDecrypt($gaSettings['uri'], $uKey);
-                        $uri = encrypt($uri, $uKey);
-                        $QRurl = legacyDecrypt($gaSettings['qrurl'], $uKey);
-                        $QRurl = encrypt($QRurl, $uKey);
+                        $IV = openssl_random_pseudo_bytes(openssl_cipher_iv_length('AES-256-CBC'));
+                        $incourtesy = mcryptDecrypt($gaSettings['incourtesy']);
+                        $incourtesy = opensslEncrypt($incourtesy, $encKey, $IV);
+                        $secret = mcryptDecrypt($gaSettings['secret']);
+                        if(strlen($secret) != 16) {
+                            $modx->log(modX::LOG_LEVEL_ERROR,"Invalid 2FA secret, aborting re-encrypting for current user." );
+                            continue;
+                        }
+                        $secret = opensslEncrypt($secret, $encKey, $IV);
+                        $uri = mcryptDecrypt($gaSettings['uri']);
+                        $uri = opensslEncrypt($uri, $encKey, $IV);
+                        $QRurl = mcryptDecrypt($gaSettings['qrurl']);
+                        $QRurl = opensslEncrypt($QRurl, $encKey, $IV);
+                        $userIV = base64_decode($IV);
 
                         $newData = array(
                             'incourtesy' => $incourtesy,
                             'secret' => $secret,
                             'uri'    => $uri,
-                            'qrurl'  => $QRurl
+                            'qrurl'  => $QRurl,
+                            'iv'     => $userIV,
                         );
+                        $modx->log(modX::LOG_LEVEL_INFO,"Saving data..." );
                         $extended['GoogleAuthenticatorX']['Settings'] = $newData;
                         $profile->set('extended', $extended);
                         $profile->save();
                     }
+                    else {
+                        $modx->log(modX::LOG_LEVEL_WARN,"Invalid 2FA data, new set will be created on next load!");
+                    }
+                }
+                else {
+                    $modx->log(modX::LOG_LEVEL_WARN,"No GoogleAuthenticatorX data found, new set will be created on next load!");
                 }
             }
         }
-
-        setEncrptKeySetting();
-
         $success = true;
         break;
     
@@ -213,39 +235,40 @@ function checkPolicy($criteria, $target, $user) {
 
 function meetsRequirements(){
     $result = true;
-    if (!extension_loaded('mcrypt')) {
+    $php_ver_comp = version_compare(phpversion(), '5.4.0');
+    if ($php_ver_comp < 0) {
         $result = false;
     }
-    $php_ver_comp = version_compare(phpversion(), '5.3.0');
-    if ($php_ver_comp < 0) {
+    if (!function_exists('openssl_encrypt') || !function_exists('openssl_decrypt')) {
         $result = false;
     }
     return $result;
 }
 
-function legacyDecrypt($Cyphered, $key){
+function mcryptDecrypt($Cyphered) {
+    global $modx;
     $Cyphered = base64_decode($Cyphered);
-    $liv_size = mcrypt_get_iv_size(MCRYPT_BLOWFISH, MCRYPT_MODE_ECB);
-    $liv = mcrypt_create_iv($liv_size, MCRYPT_RAND);
-    $decrypted_string = mcrypt_decrypt(MCRYPT_BLOWFISH, $key, $Cyphered, MCRYPT_MODE_ECB, $liv);
+    $encryption_key =  str_replace('-','', $modx->uuid);
+    $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
+    $iv = substr($Cyphered, 0, $iv_size);
+    $Cyphered = substr($Cyphered, $iv_size);
+    $decrypted_string = mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $encryption_key, $Cyphered, MCRYPT_MODE_CBC, $iv);
     return $decrypted_string;
 }
 
-function encrypt($plainTXT, $key){
-    $key = str_replace('-','',$key);
-    $iv_size = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
-    $iv = mcrypt_create_iv($iv_size, MCRYPT_RAND);
-    $encrypted_string = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $key, $plainTXT, MCRYPT_MODE_CBC, $iv);
-    return base64_encode($iv . $encrypted_string);
+function opensslEncrypt($plainText, $encryptionKey, $IV) {
+    return openssl_encrypt($plainText, 'AES-256-CBC', $encryptionKey, OPENSSL_RAW_DATA & OPENSSL_ZERO_PADDING, $IV);
 }
 
 function setEncrptKeySetting() {
-    $gax_enckey_setting = $this->modx->getObject('modSystemSetting', array('key' => 'gax_encrypt_key'));
+    global $modx;
+    $gax_enckey_setting = $modx->getObject('modSystemSetting', array('key' => 'gax_encrypt_key'));
     if(!$gax_enckey_setting) {
-        $gax_enckey_setting = $this->modx->newObject('modSystemSetting');
+        $modx->log(modX::LOG_LEVEL_WARN,"Generating Encryption Key into System Setting!");
+        $gax_enckey_setting = $modx->newObject('modSystemSetting');
         $gax_enckey_setting->set('key', 'gax_encrypt_key');
         $gax_enckey_setting_settings = array(
-            'value' => str_replace('-','', $this->modx->uuid),
+            'value' => bin2hex(openssl_random_pseudo_bytes(32)),
             'xtype' => 'password',
             'namespace' => 'GoogleAuthenticatorX',
             'area' => 'Default'
@@ -253,8 +276,10 @@ function setEncrptKeySetting() {
         $gax_enckey_setting->fromArray($gax_enckey_setting_settings);
         $gax_enckey_setting->save();
     }
-    else if($gax_enckey_setting->get('value') == '') {
-        $gax_enckey_setting->set('value', str_replace('-','', $this->modx->uuid));
+    else if(!preg_match('/^[0-9A-Fa-f]{64}$/', $gax_enckey_setting->get('value'))) {
+        $modx->log(modX::LOG_LEVEL_ERROR,"Invalid Encryption Key in System Setting, regenerating key!");
+        $gax_enckey_setting->set('value', bin2hex(openssl_random_pseudo_bytes(32)));
         $gax_enckey_setting->save();
     }
 }
+

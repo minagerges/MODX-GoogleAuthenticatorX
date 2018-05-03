@@ -34,9 +34,7 @@ foreach ($s as $key => $value) {
             $type = 'password';
             $value = '';
         }
-        else {
-            $type = 'textfield';
-        }
+        else { $type = 'textfield'; }
     }
     elseif (is_bool($value)) { $type = 'combo-boolean'; }
     else { $type = 'textfield'; }
