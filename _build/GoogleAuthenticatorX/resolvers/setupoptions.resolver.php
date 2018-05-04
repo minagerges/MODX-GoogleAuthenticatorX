@@ -269,7 +269,7 @@ function setEncrptKeySetting() {
         $gax_enckey_setting->set('key', 'gax_encrypt_key');
         $gax_enckey_setting_settings = array(
             'value' => bin2hex(openssl_random_pseudo_bytes(32)),
-            'xtype' => 'password',
+            'xtype' => 'text-password',
             'namespace' => 'GoogleAuthenticatorX',
             'area' => 'Default'
         );

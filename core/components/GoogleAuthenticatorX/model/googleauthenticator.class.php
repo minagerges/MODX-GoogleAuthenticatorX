@@ -313,7 +313,7 @@ class GAx {
             $encryptionKey_setting->set('key', 'gax_encrypt_key');
             $encryptionKey_setting_arr = array(
                 'value' => bin2hex(openssl_random_pseudo_bytes(32)),
-                'xtype' => 'password',
+                'xtype' => 'text-password',
                 'namespace' => 'GoogleAuthenticatorX',
                 'area' => 'Default'
             );

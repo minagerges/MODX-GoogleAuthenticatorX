@@ -31,7 +31,7 @@ $settings = array();
 foreach ($s as $key => $value) {
     if (is_string($value) || is_int($value)) {
         if ($value == '*') {
-            $type = 'password';
+            $type = 'text-password';
             $value = '';
         }
         else { $type = 'textfield'; }
