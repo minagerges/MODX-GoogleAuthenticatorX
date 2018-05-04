@@ -31,7 +31,7 @@ else{
             return $this->success('',array('qrurl' => $gaSettings['qrurl']) );
         }
         else {
-            return $modx->error->failure($modx->lexicon('access_denied'));
+            return $modx->error->failure($modx->lexicon('permission_denied'));
         }
     }
     else{
