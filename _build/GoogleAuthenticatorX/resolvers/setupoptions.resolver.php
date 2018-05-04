@@ -146,7 +146,7 @@ switch ($options[xPDOTransport::PACKAGE_ACTION]) {
                         $uri = opensslEncrypt($uri, $encKey, $IV);
                         $QRurl = mcryptDecrypt($gaSettings['qrurl']);
                         $QRurl = opensslEncrypt($QRurl, $encKey, $IV);
-                        $userIV = base64_decode($IV);
+                        $userIV = base64_encode($IV);
 
                         $newData = array(
                             'incourtesy' => $incourtesy,
