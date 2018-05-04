@@ -27,7 +27,12 @@ else{
     $GA->LoadUserByID($userid);
     $gaSettings = $GA->GetDecryptedSettingsArray();
     if ($gaSettings) {
-        return $this->success('',array('qrurl' => $gaSettings['qrurl']) );
+        if($modx->getOption('gax_profile_enabled') || $gaSettings['incourtesy'] == 'yes') {
+            return $this->success('',array('qrurl' => $gaSettings['qrurl']) );
+        }
+        else {
+            return $modx->error->failure($modx->lexicon('access_denied'));
+        }
     }
     else{
         return $modx->error->failure($modx->lexicon('no_records_found'));
