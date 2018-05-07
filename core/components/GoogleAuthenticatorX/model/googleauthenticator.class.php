@@ -196,7 +196,7 @@ class GAx {
         $username = $this->user->get('username');
         
         $secret = $this->ga->createSecret();
-        $issuer = $this->modx->getOption('gax_issuer', null, $this->modx->getOption('site_name'));
+        $issuer = $this->modx->getOption('gax_issuer', null, $this->modx->getOption('site_name'), true);
         $mgrURLalt = $this->modx->getOption('manager_login_url_alternate');
         $mgrURL = empty($mgrURLalt) ? 
                 $this->modx->getOption('url_scheme').$this->modx->getOption('http_host').$this->modx->getOption('manager_url') : $mgrURLalt ;
