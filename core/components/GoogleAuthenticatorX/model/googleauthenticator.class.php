@@ -163,6 +163,9 @@ class GAx {
             }
             $this->userGAdisabled = $this->GetUserGAxStatus();
             $this->UserInCourtesy = $this->GetUserCourtesyStatus();
+            $issuer = $this->modx->getOption('gax_issuer', null, $this->modx->getOption('site_name'), true);
+            $this->GAusrSettings['uri'] = $this->ga->getURI($this->UserName, $this->GAusrSettings['secret'], $issuer);
+            $this->GAusrSettings['qrurl'] = $this->ga->getQRCodeGoogleUrl($this->UserName, $this->GAusrSettings['secret'], $issuer);
             $this->log(debug, "Data loaded for user:({$this->UserName}) id:{$this->UserID}");
         }
         else { // No setting for the user, we populate all defaults then save
