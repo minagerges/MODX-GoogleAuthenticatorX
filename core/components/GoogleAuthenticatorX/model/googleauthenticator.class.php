@@ -67,7 +67,7 @@ class GAx {
             }
             else {
                 $msg = "key mismatch user:({$this->UserName}) id:{$this->UserID}". " - entered:$EnteredCode expected:$code"; 
-                $this->log(warn, $msg);
+                $this->log('warn', $msg);
                 return false;
             }
         }
@@ -77,7 +77,7 @@ class GAx {
         else if(!$secret || !$this->ValidSecret($secret)){ //secret is not set or invalid
             $this->resetsecret();
             $msg = "missing or invalid secret for user:({$this->UserName}) id:{$this->UserID}";
-            $this->log(error, $msg);
+            $this->log('error', $msg);
             return false; 
         }
     }
@@ -93,13 +93,13 @@ class GAx {
         $this->CreateDefaultSettings();
         $this->SaveGAuserSettings();
         $msg = "Secret reset for user:({$this->UserName}) id:{$this->UserID}";
-        $this->log(error, $msg);
+        $this->log('error', $msg);
     }
     
     public function LoadUserByID($userid){
         $user = $this->modx->getObject('modUser', $userid);
         if($user){
-            $this->log(debug, "Loading user by ID:$userid");
+            $this->log('debug', "Loading user by ID:$userid");
             $this->user = $user;
             $this->UserExist = true;
             $this->UserName = $this->user->get('username');
@@ -108,7 +108,7 @@ class GAx {
             return true;
         }
         else{
-            $this->log(warn, "No user was found with ID:$userid");
+            $this->log('warn', "No user was found with ID:$userid");
             return false;
         }
     }
@@ -116,7 +116,7 @@ class GAx {
     public function LoadUserByName($username){
         $user = $this->modx->getObject('modUser',array('username' => $username));
         if($user){
-            $this->log(debug, "Loading user by name:($username)");
+            $this->log('debug', "Loading user by name:($username)");
             $this->user = $user;
             $this->UserExist = true;
             $this->UserID = $this->user->get('id');
@@ -125,7 +125,7 @@ class GAx {
             return true;
         }
         else{
-            $this->log(warn, "No user was found with name:($username)");
+            $this->log('warn', "No user was found with name:($username)");
             return false;
         }
     }
@@ -153,23 +153,23 @@ class GAx {
             // Validate IV to avoid php warning
             if(strlen(bin2hex($this->userIV))/2 != 16) {
                 $this->userIV = $this->generateIV();
-                $this->log(error, "Invalid stored IV, for user:({$this->UserName}) id:{$this->UserID}");
+                $this->log('error', "Invalid stored IV, for user:({$this->UserName}) id:{$this->UserID}");
             }
             $this->GAusrSettings = $this->GetDecryptedArray($gaSettings);
             $this->GAusrSettings['incourtesy'] = preg_replace( '/[^[:print:]]/', '',$this->GAusrSettings['incourtesy']); //fix issue with decrypted string
             if(!$this->ValidSecret($this->GAusrSettings['secret'])){
                 $this->resetsecret();
-                $this->log(error, "Invalid secret for user:({$this->UserName}) id:{$this->UserID}");
+                $this->log('error', "Invalid secret for user:({$this->UserName}) id:{$this->UserID}");
             }
             $this->userGAdisabled = $this->GetUserGAxStatus();
             $this->UserInCourtesy = $this->GetUserCourtesyStatus();
             $issuer = $this->modx->getOption('gax_issuer', null, $this->modx->getOption('site_name'), true);
             $this->GAusrSettings['uri'] = $this->ga->getURI($this->UserName, $this->GAusrSettings['secret'], $issuer);
             $this->GAusrSettings['qrurl'] = $this->ga->getQRCodeGoogleUrl($this->UserName, $this->GAusrSettings['secret'], $issuer);
-            $this->log(debug, "Data loaded for user:({$this->UserName}) id:{$this->UserID}");
+            $this->log('debug', "Data loaded for user:({$this->UserName}) id:{$this->UserID}");
         }
         else { // No setting for the user, we populate all defaults then save
-            $this->log(error, "No Google Authenticator data were found for user:({$this->UserName}) id:{$this->UserID}");
+            $this->log('error', "No Google Authenticator data were found for user:({$this->UserName}) id:{$this->UserID}");
             $this->CreateDefaultSettings();
             $this->SaveGAuserSettings();
         }
@@ -179,7 +179,7 @@ class GAx {
     private function ValidSecret($secret){
         $valid = $this->ga->validsecret($secret);
         if(!$valid){
-            $this->log(debug, "Not a valid secret:$secret for user:({$this->UserName}) id:{$this->UserID}");
+            $this->log('debug', "Not a valid secret:$secret for user:({$this->UserName}) id:{$this->UserID}");
             return false;
         }
         return true;
@@ -191,11 +191,11 @@ class GAx {
         $extended['GoogleAuthenticatorX']['Settings'] = $this->GetEncryptedArray();
         $profile->set('extended', $extended);
         $profile->save();
-        $this->log(debug, "Settings saved for user:({$this->UserName}) id:{$this->UserID}" );
+        $this->log('debug', "Settings saved for user:({$this->UserName}) id:{$this->UserID}" );
     }
     
     private function CreateDefaultSettings(){
-        $this->log(debug, "Creating new default settings for user:({$this->UserName}) id:{$this->UserID}" );
+        $this->log('debug', "Creating new default settings for user:({$this->UserName}) id:{$this->UserID}" );
         $username = $this->user->get('username');
         
         $secret = $this->ga->createSecret();
@@ -221,7 +221,7 @@ class GAx {
     private function GetUserGAxStatus(){
         $usersettings = $this->user->getSettings();
         if(isset($usersettings['gax_disabled'])){
-            $this->log(info, "gax_disabled usersetting loaded for user:({$this->UserName}) id:{$this->UserID}");
+            $this->log('info', "gax_disabled usersetting loaded for user:({$this->UserName}) id:{$this->UserID}");
             return $usersettings['gax_disabled'];
         }
         else{
@@ -233,18 +233,18 @@ class GAx {
         $GlobalCourtesyStatus = $this->modx->getOption('gax_courtesy_enabled',null, false);
         $usersettings = $this->user->getSettings();
         if(isset($usersettings['gax_courtesy_enabled'])){
-            $this->log(info, "gax_courtesy_enabled usersetting loaded with value {$usersettings['gax_courtesy_enabled']} for user:({$this->UserName}) id:{$this->UserID}");
+            $this->log('info', "gax_courtesy_enabled usersetting loaded with value {$usersettings['gax_courtesy_enabled']} for user:({$this->UserName}) id:{$this->UserID}");
             return $usersettings['gax_courtesy_enabled'];
         }
         else{
-            $this->log(debug, "Applying Global Courtesy logging value:{$GlobalCourtesyStatus}");
+            $this->log('debug', "Applying Global Courtesy logging value:{$GlobalCourtesyStatus}");
             return $GlobalCourtesyStatus;
         }
     }
     
     private function GetUserCourtesyStatus(){
         if($this->IsCourtesyEnabled() && $this->GAusrSettings['incourtesy']=='yes'){
-            $this->log(info, "User is in courtesy mode - user:({$this->UserName}) id:{$this->UserID}");
+            $this->log('info', "User is in courtesy mode - user:({$this->UserName}) id:{$this->UserID}");
             return true;
         }
         else{
@@ -253,7 +253,7 @@ class GAx {
     }
  
     public function ResetCourtesy(){
-        $this->log(info, "Resetting courtesy status - user:({$this->UserName}) id:{$this->UserID}");
+        $this->log('info', "Resetting courtesy status - user:({$this->UserName}) id:{$this->UserID}");
         $this->GAusrSettings['incourtesy'] = 'no';
         $this->UserInCourtesy = false;
         $this->SaveGAuserSettings();
@@ -263,7 +263,7 @@ class GAx {
         $userid = $this->user->get('id');
         $object = $this->modx->getObject('modUserSetting', array('user' => $userid, 'key' => 'gax_disabled'));
         if ($object === null && $status) { //no user setting but status is true(GA disabled) then we create
-            $this->log(info, "Creating gax_disabled userSetting - user:({$this->UserName}) id:{$this->UserID}");
+            $this->log('info', "Creating gax_disabled userSetting - user:({$this->UserName}) id:{$this->UserID}");
             $object = $this->modx->newObject('modUserSetting');
             $object->set('user', $userid);
             $object->set('key', 'gax_disabled');
@@ -274,7 +274,7 @@ class GAx {
             $object->save();
         }
         else if($object !== null && $object->get('value') != $status){ //user setting exists but status changing we just change it
-            $this->log(info, "Changing gax_disabled userSetting to:($status) - user:({$this->UserName}) id:{$this->UserID}");
+            $this->log('info', "Changing gax_disabled userSetting to:($status) - user:({$this->UserName}) id:{$this->UserID}");
             $object->set('value', $status);
             $object->save();
         }
@@ -322,12 +322,12 @@ class GAx {
             );
             $encryptionKey_setting->fromArray($encryptionKey_setting_arr);
             $encryptionKey_setting->save();
-            $this->log(error, 'Created encryption key in system settings!');
+            $this->log('error', 'Created encryption key in system settings!');
         }
         if(!preg_match('/^[0-9A-Fa-f]{64}$/', $encryptionKey_setting->get('value'))) {
             $encryptionKey_setting->set('value', hash('sha256', $this->modx->uuid));
             $encryptionKey_setting->save();
-            $this->log(error, 'Invalid encryption key in system settings! Value was reset.');
+            $this->log('error', 'Invalid encryption key in system settings! Value was reset.');
         }
         $this->encryptionKey = $encryptionKey_setting->get('value');
     }
