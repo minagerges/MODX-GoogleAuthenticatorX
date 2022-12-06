@@ -1,5 +1,9 @@
 Changelog file for GoogleAuthenticatorX ModX extra.
 
+GoogleAuthenticatorX 1.3.3-pl
+====================================
+- Use class based processors
+
 GoogleAuthenticatorX 1.3.2-pl
 ====================================
 - [#20][#23] Fixed PHP Warnings

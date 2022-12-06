@@ -17,18 +17,23 @@
   *  WipeCache; if not, write to the Free Software Foundation, Inc., 59 Temple
   *  Place, Suite 330, Boston, MA 02111-1307 USA
  */
-$loggeduser = $modx->getuser();
-if($loggeduser){
-    $sudo = $loggeduser->get('sudo');
-    if($sudo != True){
-        return $modx->error->failure($modx->lexicon('permission_denied'));
-    }
-    else{
-        $userid = $scriptProperties['id'];
-        include_once $modx->getOption('core_path').'components/GoogleAuthenticatorX/model/googleauthenticator.class.php';
-        $GA = new GAx($modx);
-        $GA->LoadUserByID($userid);
-        $GA->resetsecret();
-        return $modx->error->success('Reset.');
+class resetSecret extends modProcessor {
+    public function process() {
+        $loggeduser = $this->modx->getuser();
+        if($loggeduser){
+            $sudo = $loggeduser->get('sudo');
+            if($sudo != True){
+                return $this->modx->error->failure($this->modx->lexicon('permission_denied'));
+            }
+            else{
+                $userid = $this->getProperty('id');
+                include_once $this->modx->getOption('core_path').'components/GoogleAuthenticatorX/model/googleauthenticator.class.php';
+                $GA = new GAx($this->modx);
+                $GA->LoadUserByID($userid);
+                $GA->resetsecret();
+                return $this->modx->error->success('Reset.');
+            }
+        }
     }
 }
+return 'resetSecret';
