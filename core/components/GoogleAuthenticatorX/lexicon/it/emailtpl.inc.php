@@ -31,7 +31,7 @@ $_lang['gax.notifyemail_subject'] = 'E\' stata attivata l\'autenticazione a 2 fa
 $_lang['gax.notifyemail_body'] = '<p>Ciao [[+username]],</p><p>Hai ricevuto questo messaggio perché è stata attivata l\'autenticazione a 2 fattori per il tuo account Modx. 
 		  Per utilizzare Google Authenticator hai bisogno di un dispositivo supportato, (Android, iPhone, BlackBerry). Per alcuni dispositivi potresti avere bisogno anche di un QR-code scanner.
 		  Avrai la possibilità di fare login senza chiave di autenticazione una sola volta; una volta fatto login, potrai fare la scansione del QR-code e verrai disconnesso.</p>
-		  <p>Apri Google Authenticator e fai la scansione del QR-code qui sotto; una volta completata la scansione con successo, vedrai una chiave di autenticazione che cambia ogni 30 secondi. Questa è la chiave richiesta quando fai login.</p>
+		  <p>Apri Google Authenticator e fai la scansione del QR-code fornito; una volta completata la scansione con successo, vedrai una chiave di autenticazione che cambia ogni 30 secondi. Questa è la chiave richiesta quando fai login.</p>
 		  <p><br/><strong>NB. Il QR-code sara visibile solamente per 60 secondi.</strong></p><hr/>
 		  <div style="margin-top: 0px;">
 		  <h3>Istruzioni step by step</h3>
