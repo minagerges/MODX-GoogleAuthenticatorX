@@ -14,21 +14,14 @@
   *  A PARTICULAR PURPOSE. See the GNU General Public License for more details.
   * 
   *  You should have received a copy of the GNU General Public License along with
-  *  WipeCache; if not, write to the Free Software Foundation, Inc., 59 Temple
+  *  WipeCache; if not, write to the Free Software Foundation, Inc., 59 PDF_begin_template_ext(pdfdoc, width, height, optlist)
   *  Place, Suite 330, Boston, MA 02111-1307 USA
  */
 require_once dirname(dirname(dirname(dirname(dirname(__FILE__))))).'/config.core.php';
 require_once MODX_CORE_PATH.'config/'.MODX_CONFIG_KEY.'.inc.php';
 require_once MODX_CONNECTORS_PATH.'index.php';
-require_once( MODX_CORE_PATH . 'model/modx/modx.class.php');
-$modx = new modx();
-$modx->initialize('mgr');
-$modx->lexicon->load('GoogleAuthenticatorX:default');
-$connectorRequestClass = $modx->getOption('modConnectorRequest.class', null, 'modConnectorRequest');
-$modx->config['modRequest.class'] = $connectorRequestClass;
-$modx->getRequest();
-$path = $modx->getOption('core_path').'components/GoogleAuthenticatorX/processors/';
+
 $modx->request->handlerequest(array(
-    'processors_path' => $path,
+    'processors_path' => $modx->getOption('core_path').'components/GoogleAuthenticatorX/processors/',
     'location' => '',
 ));
